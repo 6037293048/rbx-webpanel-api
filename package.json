@@ -1,0 +1,18 @@
+{
+  "name": "rbx-webpanel-api",
+  "version": "1.0.0",
+  "description": "Roblox Webpanel API",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.1"
+  }
+}
