@@ -1,11 +1,11 @@
-const express = require('express');
-const cors = require('cors');
-const crypto = require('crypto');
+import express from 'express';
+import cors from 'cors';
+import crypto from 'crypto';
+
 const app = express();
 
-
 app.use(cors({
-    origin: '*', 
+    origin: '*',
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -73,4 +73,7 @@ app.post('/api/:panelKey/command/done', (req, res) => {
     res.json({ success: true });
 });
 
-app.listen(process.env.PORT || 3000);
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
+});
