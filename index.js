@@ -1,3 +1,6 @@
+const cors = require('cors');
+app.use(cors({ origin: '*' }));
+
 const express = require('express');
 const crypto = require('crypto');
 const app = express();
@@ -73,3 +76,4 @@ app.post('/api/:panelKey/command/done', (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000);
+
