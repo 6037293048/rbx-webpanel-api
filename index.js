@@ -18,22 +18,16 @@ let panels = [];
 if (fs.existsSync(DATA_FILE)) {
     try {
         panels = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-    } catch (e) {
-        panels = [];
-    }
+    } catch (e) { panels = []; }
 }
 
-const saveItems = () => {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(panels, null, 2));
-};
+const saveItems = () => fs.writeFileSync(DATA_FILE, JSON.stringify(panels, null, 2));
 
+// --- AUTH MIDDLEWARE (WIE VORGEGEBEN) ---
 const authMiddleware = async (req, res, next) => {
     const header = req.headers.authorization;
-    if (!header || !header.startsWith('Bearer ')) {
-        return res.status(401).json({ error: "Unauthorized" });
-    }
+    if (!header || !header.startsWith('Bearer ')) return res.status(401).json({ error: "Unauthorized" });
     const token = header.split(' ')[1];
-
     try {
         const verifyRes = await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=AIzaSyCje12QpL2M2WqjNLqvpTvJmXQH6Hxzk9w`, {
             method: 'POST',
@@ -44,23 +38,14 @@ const authMiddleware = async (req, res, next) => {
         if (userData.users && userData.users[0]) {
             req.user = { id: userData.users[0].localId };
             next();
-        } else {
-            res.status(401).json({ error: "Invalid Token" });
-        }
-    } catch (error) {
-        res.status(500).json({ error: "Auth Check Failed" });
-    }
+        } else { res.status(401).json({ error: "Invalid Token" }); }
+    } catch (error) { res.status(500).json({ error: "Auth Check Failed" }); }
 };
 
+// --- PANEL ROUTES ---
 app.get('/panels', authMiddleware, (req, res) => {
     const userPanels = panels.filter(p => p.ownerUserId === req.user.id);
-    res.json({
-        panels: userPanels.map(p => ({
-            id: p.id,
-            name: p.name,
-            key: p.panelKey
-        }))
-    });
+    res.json({ panels: userPanels.map(p => ({ id: p.id, name: p.name, key: p.panelKey })) });
 });
 
 app.post('/panels/create', authMiddleware, (req, res) => {
@@ -76,11 +61,10 @@ app.post('/panels/create', authMiddleware, (req, res) => {
     res.json({ success: true, panel: { id: newPanel.id, name: newPanel.name, key: newPanel.panelKey } });
 });
 
+// --- ROBLOX API (OHNE AUTH) ---
 app.get('/api/:panelKey/command/next', (req, res) => {
     const panel = panels.find(p => p.panelKey === req.params.panelKey);
-    if (!panel || !panel.commandQueue || panel.commandQueue.length === 0) {
-        return res.json({ command: "none" });
-    }
+    if (!panel || !panel.commandQueue || panel.commandQueue.length === 0) return res.json({ command: "none" });
     res.json({ command: panel.commandQueue[0] });
 });
 
@@ -102,6 +86,4 @@ app.post('/api/:panelKey/command/done', (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
