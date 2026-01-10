@@ -10,7 +10,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 admin.initializeApp({
-    projectId: "DEINE-PROJECT-ID"
+apiKey: "AIzaSyCje12QpL2M2WqjNLqvpTvJmXQH6Hxzk9w",
+authDomain: "robloxwebpanel.firebaseapp.com",
+projectId: "robloxwebpanel",
+storageBucket: "robloxwebpanel.firebasestorage.app",
+messagingSenderId: "811191493138",
+appId: "1:811191493138:web:4752345b9cd2017529eecb"
 });
 
 const app = express();
@@ -100,3 +105,4 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
+
