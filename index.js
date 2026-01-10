@@ -1,79 +1,75 @@
-import express from 'express';
-import cors from 'cors';
-import crypto from 'crypto';
+const express = require('express');
+const crypto = require('crypto');
+const cors = require('cors');
 
 const app = express();
-
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
 app.use(express.json());
+app.use(cors());
 
-const db = {
-    panels: []
-};
+// In-Memory Speicher (geht bei Render-Neustart verloren)
+// Für Persistenz könnte man hier fs.writeFileSync nutzen.
+let panels = []; 
 
-function generateKey() {
-    return crypto.randomBytes(10).toString('hex');
-}
+// Hilfsfunktion zum Finden eines Panels per Key
+const getPanelByKey = (key) => panels.find(p => p.panelKey === key);
 
+// --- PANEL VERWALTUNG (AUTH ERFORDERLICH) ---
+
+// 1. Alle Panels des Users abrufen
 app.get('/panels', (req, res) => {
-    const userPanels = db.panels
-        .filter(p => p.ownerUserId === req.user.id)
-        .map(({ id, name, panelKey }) => ({ id, name, key: panelKey }));
-    
-    res.json({ panels: userPanels });
-});
-
-app.post('/panels/create', (req, res) => {
-    const userPanelsCount = db.panels.filter(p => p.ownerUserId === req.user.id).length;
-    
-    const newPanel = {
-        id: Date.now(),
-        ownerUserId: req.user.id,
-        name: `Panel ${userPanelsCount + 1}`,
-        panelKey: generateKey(),
-        commandQueue: []
-    };
-
-    db.panels.push(newPanel);
-    
+    const userPanels = panels.filter(p => p.ownerUserId === req.user.id);
     res.json({
-        success: true,
-        panel: {
-            id: newPanel.id,
-            name: newPanel.name,
-            key: newPanel.panelKey
-        }
+        panels: userPanels.map(p => ({
+            id: p.id,
+            name: p.name,
+            key: p.panelKey
+        }))
     });
 });
 
+// 2. Neues Panel erstellen
+app.post('/panels/create', (req, res) => {
+    const newPanel = {
+        id: Date.now(),
+        ownerUserId: req.user.id,
+        name: req.body.name || "Neues Panel",
+        panelKey: crypto.randomUUID(),
+        commandQueue: []
+    };
+    panels.push(newPanel);
+    res.json({ success: true, panel: { id: newPanel.id, name: newPanel.name, key: newPanel.panelKey } });
+});
+
+// --- ROBLOX API (KEIN AUTH, NUR PANEL-KEY) ---
+
+// 3. Nächsten Befehl abrufen
 app.get('/api/:panelKey/command/next', (req, res) => {
-    const panel = db.panels.find(p => p.panelKey === req.params.panelKey);
-    if (!panel) return res.status(404).json({ error: "Panel not found" });
-    if (panel.commandQueue.length === 0) return res.json({ command: "none" });
+    const panel = getPanelByKey(req.params.panelKey);
+    if (!panel || panel.commandQueue.length === 0) {
+        return res.json({ command: "none" });
+    }
+    // Gibt den ältesten Befehl zurück
     res.json({ command: panel.commandQueue[0] });
 });
 
+// 4. Befehl hinzufügen (z.B. durch Web-Button)
 app.post('/api/:panelKey/command/add', (req, res) => {
-    const panel = db.panels.find(p => p.panelKey === req.params.panelKey);
-    if (!panel) return res.status(404).json({ error: "Panel not found" });
+    const panel = getPanelByKey(req.params.panelKey);
     const { command } = req.body;
+    if (!panel) return res.status(404).json({ error: "Panel nicht gefunden" });
+    
     panel.commandQueue.push(command);
     res.json({ success: true });
 });
 
+// 5. Befehl als erledigt markieren (Löschen)
 app.post('/api/:panelKey/command/done', (req, res) => {
-    const panel = db.panels.find(p => p.panelKey === req.params.panelKey);
-    if (!panel) return res.status(404).json({ error: "Panel not found" });
-    panel.commandQueue.shift();
+    const panel = getPanelByKey(req.params.panelKey);
+    if (panel && panel.commandQueue.length > 0) {
+        panel.commandQueue.shift(); // Entfernt den ersten Befehl
+    }
     res.json({ success: true });
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`API läuft auf Port ${PORT}`));
