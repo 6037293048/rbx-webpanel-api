@@ -4,19 +4,9 @@ import cors from 'cors';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import admin from 'firebase-admin';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-admin.initializeApp({
-apiKey: "AIzaSyCje12QpL2M2WqjNLqvpTvJmXQH6Hxzk9w",
-authDomain: "robloxwebpanel.firebaseapp.com",
-projectId: "robloxwebpanel",
-storageBucket: "robloxwebpanel.firebasestorage.app",
-messagingSenderId: "811191493138",
-appId: "1:811191493138:web:4752345b9cd2017529eecb"
-});
 
 const app = express();
 app.use(express.json());
@@ -43,12 +33,22 @@ const authMiddleware = async (req, res, next) => {
         return res.status(401).json({ error: "Unauthorized" });
     }
     const token = header.split(' ')[1];
+
     try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
-        req.user = { id: decodedToken.uid };
-        next();
+        const verifyRes = await fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getAccountInfo?key=AIzaSyCje12QpL2M2WqjNLqvpTvJmXQH6Hxzk9w`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idToken: token })
+        });
+        const userData = await verifyRes.json();
+        if (userData.users && userData.users[0]) {
+            req.user = { id: userData.users[0].localId };
+            next();
+        } else {
+            res.status(401).json({ error: "Invalid Token" });
+        }
     } catch (error) {
-        res.status(401).json({ error: "Invalid Token" });
+        res.status(500).json({ error: "Auth Check Failed" });
     }
 };
 
@@ -67,7 +67,7 @@ app.post('/panels/create', authMiddleware, (req, res) => {
     const newPanel = {
         id: Date.now(),
         ownerUserId: req.user.id,
-        name: req.body.name || "Neues Panel",
+        name: req.body.name || "Main Panel",
         panelKey: crypto.randomBytes(16).toString('hex'),
         commandQueue: []
     };
@@ -105,4 +105,3 @@ const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
 });
-
