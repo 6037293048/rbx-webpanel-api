@@ -1,8 +1,13 @@
-const express = require('express');
-const crypto = require('crypto');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
+import express from 'express';
+import crypto from 'crypto';
+import cors from 'cors';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Fix für __dirname in ES-Modulen
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -10,7 +15,7 @@ app.use(cors());
 
 const DATA_FILE = path.join(__dirname, 'panels.json');
 
-// Daten laden oder leeres Array erstellen
+// Daten laden
 let panels = [];
 if (fs.existsSync(DATA_FILE)) {
     try {
@@ -20,7 +25,6 @@ if (fs.existsSync(DATA_FILE)) {
     }
 }
 
-// Hilfsfunktion: Speichern
 const saveItems = () => {
     fs.writeFileSync(DATA_FILE, JSON.stringify(panels, null, 2));
 };
@@ -28,7 +32,7 @@ const saveItems = () => {
 // --- PANEL VERWALTUNG (AUTH MIDDLEWARE WIRD VORRAUSGESETZT) ---
 
 app.get('/panels', (req, res) => {
-    // req.user.id kommt von deinem Firebase Middleware
+    // req.user.id kommt von deiner Firebase Middleware
     const userPanels = panels.filter(p => p.ownerUserId === req.user.id);
     res.json({
         panels: userPanels.map(p => ({
@@ -44,7 +48,7 @@ app.post('/panels/create', (req, res) => {
         id: Date.now(),
         ownerUserId: req.user.id,
         name: req.body.name || "Neues Panel",
-        panelKey: crypto.randomBytes(16).toString('hex'), // Sicherer Key
+        panelKey: crypto.randomBytes(16).toString('hex'),
         commandQueue: []
     };
     panels.push(newPanel);
@@ -80,7 +84,7 @@ app.post('/api/:panelKey/command/done', (req, res) => {
     res.json({ success: true });
 });
 
-// WICHTIG FÜR RENDER: Port muss über process.env.PORT kommen
+// WICHTIG FÜR RENDER
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
