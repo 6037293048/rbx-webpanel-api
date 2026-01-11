@@ -46,7 +46,7 @@ app.get('/panels', authMiddleware, (req, res) => {
     const userPanels = panels.filter(p => p.ownerUserId === req.user.id);
     res.json({ panels: userPanels.map(p => ({ id: p.id, name: p.name, key: p.panelKey })) });
 });
-
+///////////////////////////////////////////////////////////////////////
 app.post('/panels/create', authMiddleware, (req, res) => {
     const newPanel = {
         id: Date.now(),
@@ -73,7 +73,7 @@ app.post('/api/:panelKey/command/add', (req, res) => {
     saveItems();
     res.json({ success: true });
 });
-
+///////////////////////////////////////////////////////////////////////
 app.post('/panels/:panelKey/buttons/add', (req, res) => {
     const { label, cmdId } = req.body;
     const panel = panels.find(p => p.panelKey === req.params.panelKey);
@@ -87,8 +87,30 @@ app.post('/panels/:panelKey/buttons/add', (req, res) => {
     
     res.json({ success: true, buttons: panel.customButtons });
 });
+///////////////////////////////////////////////////////////////////////
+app.post('/panels/:panelKey/buttons/delete', (req, res) => {
+    const { index } = req.body;
+    const panelKey = req.params.panelKey;
+    
+ 
+    const panel = panels.find(p => p.panelKey === panelKey);
+    
+    if (panel && panel.buttons && panel.buttons[index] !== undefined) {
+        
+        panel.buttons.splice(index, 1);
+        
+       
+        saveItems(); 
+        
+        console.log(`Button bei Index ${index} für Panel ${panelKey} gelöscht.`);
+        res.json({ success: true });
+    } else {
+        console.log("Fehler: Button oder Panel nicht gefunden");
+        res.status(404).json({ error: "Button nicht gefunden" });
+    }
+});
 
-
+///////////////////////////////////////////////////////////////////////
 app.get('/panels/details/:panelKey', (req, res) => {
     const panel = panels.find(p => p.panelKey === req.params.panelKey);
     if (!panel) return res.status(404).json({ error: "Panel nicht gefunden" });
@@ -99,7 +121,7 @@ app.get('/panels/details/:panelKey', (req, res) => {
         buttons: panel.customButtons || []
     });
 });
-
+///////////////////////////////////////////////////////////////////////
 app.post('/api/:panelKey/command/done', (req, res) => {
     const panel = panels.find(p => p.panelKey === req.params.panelKey);
     if (panel && panel.commandQueue.length > 0) {
@@ -111,4 +133,5 @@ app.post('/api/:panelKey/command/done', (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+
 
