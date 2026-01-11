@@ -109,6 +109,20 @@ app.post('/panels/:panelKey/buttons/delete', (req, res) => {
         res.status(404).json({ error: "Button nicht gefunden" });
     }
 });
+////////////////////////////////////////////////////////////////////
+app.delete('/panels/delete/:panelKey', async (req, res) => {
+    const panelKey = req.params.panelKey;
+    const initialLength = panels.length;
+    
+    panels = panels.filter(p => p.panelKey !== panelKey);
+    
+    if (panels.length < initialLength) {
+        saveItems();
+        res.json({ success: true });
+    } else {
+        res.status(404).json({ error: "Panel not found" });
+    }
+});
 
 ///////////////////////////////////////////////////////////////////////
 app.get('/panels/details/:panelKey', (req, res) => {
@@ -133,4 +147,5 @@ app.post('/api/:panelKey/command/done', (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+
 
